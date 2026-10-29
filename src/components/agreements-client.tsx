@@ -43,7 +43,7 @@ export function AgreementsClient({
         .insert({
           agreement_id: agreement.id,
           signed_by: data.user.id,
-          typed_name: name.trim(),
+          signed_name: name.trim(),
           agreement_version: agreement.version,
         });
       if (insertError) {

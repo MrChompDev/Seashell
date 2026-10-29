@@ -17,11 +17,14 @@ type IconComponent = React.ComponentType<{ className?: string }>;
 
 const LINK_ICONS: Record<string, IconComponent> = {
   home: Home,
+  book: BookOpen,
   "book-open": BookOpen,
   signature: PenLine,
   calculator: Calculator,
   scales: Scale,
   file: FileText,
+  calendar: CalendarClock,
+  external: FileText,
 };
 
 export default async function DashboardOverviewPage() {
@@ -30,7 +33,7 @@ export default async function DashboardOverviewPage() {
   const { data: userData } = await supabase.auth.getUser();
 
   const [linksRes, docsRes, sigsRes, loaRes, agreementsRes] = await Promise.all([
-    supabase.from("quick_links").select("*").order("sort"),
+    supabase.from("quick_links").select("*").order("sort_order"),
     supabase.from("documents").select("*").limit(4),
     supabase
       .from("agreement_signatures")
