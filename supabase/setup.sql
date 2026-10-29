@@ -185,9 +185,6 @@ drop policy if exists "links: staff read" on public.quick_links;
 drop policy if exists "links: admin insert" on public.quick_links;
 drop policy if exists "links: admin update" on public.quick_links;
 drop policy if exists "links: admin delete" on public.quick_links;
-drop policy if exists "invites: admin read" on public.pending_invites;
-drop policy if exists "invites: admin insert" on public.pending_invites;
-drop policy if exists "invites: admin delete" on public.pending_invites;
 
 
 -- Reusable predicate fragments: caller is staff / caller is admin
