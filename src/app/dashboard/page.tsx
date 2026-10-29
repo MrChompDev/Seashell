@@ -152,7 +152,7 @@ export default async function DashboardOverviewPage() {
                   className="group flex items-center gap-3 rounded-xl border border-white/5 bg-ink/50 px-4 py-3 transition-colors hover:border-copper-400/40"
                 >
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-copper-400/12 text-copper-300">
-                    {d.is_important ? <BookOpen className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                    <FileText className="h-4 w-4" />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium text-stone-200">

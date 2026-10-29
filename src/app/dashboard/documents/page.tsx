@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, BookOpen, ExternalLink, FileText, Search } from "lucide-react";
+import { ArrowLeft, ExternalLink, FileText, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { DocumentRow } from "@/lib/types";
 import { cx } from "@/lib/utils";
@@ -7,9 +7,8 @@ import { cx } from "@/lib/utils";
 const CATEGORIES = [
   "Handbooks",
   "Policies",
-  "Procedures",
-  "Templates",
-  "Integrations",
+  "Forms",
+  "Guides",
 ] as const;
 
 export default async function DocumentsPage({
@@ -24,8 +23,8 @@ export default async function DocumentsPage({
   if (category) query = query.eq("category", category);
   if (q) query = query.ilike("title", `%${q}%`);
 
-  const { data, error } = await query.returns<DocumentRow[]>();
-  const docs = data ?? [];
+  const { data } = await query;
+  const docs = (data ?? []) as DocumentRow[];
 
   const active = category ?? "All";
 
@@ -90,11 +89,7 @@ export default async function DocumentsPage({
       </section>
 
       <section>
-        {error ? (
-          <p className="card-dark p-8 text-center text-sm text-red-300">
-            Couldn't load documents: {error.message}
-          </p>
-        ) : docs.length === 0 ? (
+        {docs.length === 0 ? (
           <div className="card-dark flex flex-col items-center gap-3 p-12 text-center">
             <FileText className="h-8 w-8 text-copper-300/70" />
             <p className="text-sm text-stone-400">
@@ -118,27 +113,28 @@ export default async function DocumentsPage({
                   <span
                     className={cx(
                       "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border text-copper-300",
-                      d.is_important
+                      d.quick_access
                         ? "border-copper-400/40 bg-copper-400/15"
                         : "border-white/10 bg-white/5"
                     )}
                   >
-                    {d.doc_type === "spreadsheet" ? (
-                      <BookOpen className="h-5 w-5" />
-                    ) : (
-                      <FileText className="h-5 w-5" />
-                    )}
+                    <FileText className="h-5 w-5" />
                   </span>
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="text-base font-semibold text-cream">{d.title}</h3>
-                      {d.is_important && (
+                      {d.quick_access && (
                         <span className="rounded bg-copper-400/15 px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-copper-300">
-                          Important
+                          Quick
                         </span>
                       )}
                     </div>
                     <p className="mt-1 text-xs text-stone-500">{d.category}</p>
+                    {d.description && (
+                      <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-stone-400">
+                        {d.description}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <ExternalLink className="h-4 w-4 shrink-0 text-stone-600 transition-transform group-hover:scale-110 group-hover:text-copper-300" />

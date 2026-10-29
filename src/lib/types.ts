@@ -20,6 +20,18 @@ export type DocumentRow = {
   updated_at: string;
 };
 
+export type AgreementRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  content: string;
+  version: number;
+  active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
 export type AgreementSignature = {
   id: string;
   agreement_id: string;

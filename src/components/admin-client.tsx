@@ -106,24 +106,29 @@ function DocsTab({
     description: "",
     url: "",
     category: "Handbooks",
-    size: "",
-    doc_type: "pdf",
-    is_important: false,
+    quick_access: false,
   });
   const [error, setError] = useState<string | null>(null);
 
   async function addDoc() {
     setError(null);
     const supabase = createClient();
+    if (!form.title.trim() || !form.url.trim()) {
+      setError("Title and URL are required.");
+      return;
+    }
     const { error: err } = await supabase.from("documents").insert({
-      ...form,
-      is_important: form.is_important || undefined,
+      title: form.title.trim(),
+      description: form.description.trim() || null,
+      url: form.url.trim(),
+      category: form.category,
+      quick_access: form.quick_access,
     });
     if (err) {
       setError(err.message);
       return;
     }
-    setForm((f) => ({ ...f, title: "", description: "", url: "", size: "" }));
+    setForm((f) => ({ ...f, title: "", description: "", url: "" }));
   }
 
   return (
@@ -141,25 +146,16 @@ function DocsTab({
             onChange={(v) => setForm({ ...form, description: v })}
           />
           <Input label="URL (Google Doc, Drive…)" value={form.url} onChange={(v) => setForm({ ...form, url: v })} />
-          <div className="grid grid-cols-2 gap-3">
-            <Select
-              label="Category"
-              value={form.category}
-              onChange={(v) => setForm({ ...form, category: v })}
-              options={["Handbooks", "Policies", "Procedures", "Templates", "Integrations"]}
-            />
-            <Select
-              label="Type"
-              value={form.doc_type}
-              onChange={(v) => setForm({ ...form, doc_type: v })}
-              options={["pdf", "doc", "spreadsheet", "link"]}
-            />
-          </div>
-          <Input label="Size (optional)" value={form.size} onChange={(v) => setForm({ ...form, size: v })} />
+          <Select
+            label="Category"
+            value={form.category}
+            onChange={(v) => setForm({ ...form, category: v })}
+            options={["Handbooks", "Policies", "Forms", "Guides", "General"]}
+          />
           <Checkline
-            checked={form.is_important}
-            onChange={(v) => setForm({ ...form, is_important: v })}
-            label="Mark as important"
+            checked={form.quick_access}
+            onChange={(v) => setForm({ ...form, quick_access: v })}
+            label="Show in Quick Access"
           />
           {error && <p className="text-xs text-red-300">{error}</p>}
           <button type="button" onClick={() => run(addDoc)} className="btn-gold w-full justify-center text-sm">
