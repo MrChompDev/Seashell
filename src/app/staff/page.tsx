@@ -83,6 +83,12 @@ export default async function StaffPage({
                   Sign in with Discord to reach the staff dashboard.
                 </p>
               )}
+              {reason === "oauth" && (
+                <p className="mt-6 max-w-sm rounded-xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-xs leading-relaxed text-red-200">
+                  Discord sign-in didn't complete. Make sure the Discord
+                  provider is enabled in Supabase, then try again.
+                </p>
+              )}
               {reason === "config" && (
                 <p className="mt-6 max-w-sm rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-xs leading-relaxed text-amber-200">
                   Supabase is not configured yet — environment variables are

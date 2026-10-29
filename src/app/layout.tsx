@@ -29,7 +29,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${poppins.variable} ${script.variable}`}>
+    <html lang="en" data-scroll-behavior="smooth" className={`${poppins.variable} ${script.variable}`}>
       <body>{children}</body>
     </html>
   );

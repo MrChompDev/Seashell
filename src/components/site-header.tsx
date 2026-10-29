@@ -54,7 +54,13 @@ export function SiteHeader() {
           )}
         </nav>
 
-        <div className="hidden md:block">
+        <div className="hidden items-center gap-3 md:flex">
+          <Link
+            href="/staff"
+            className="text-sm font-medium text-stone-400 transition-colors hover:text-copper-300"
+          >
+            Staff Portal
+          </Link>
           <a href="https://discord.gg/seashell" target="_blank" rel="noreferrer" className="btn-gold text-sm">
             <DiscordMark className="h-4 w-4" />
             Join Discord
@@ -95,6 +101,13 @@ export function SiteHeader() {
               </Link>
             )
           )}
+          <Link
+            href="/staff"
+            onClick={() => setOpen(false)}
+            className="block rounded-lg px-3 py-2.5 text-sm font-medium text-stone-300 hover:bg-white/5"
+          >
+            Staff Portal
+          </Link>
           <a
             href="https://discord.gg/seashell"
             target="_blank"

@@ -25,7 +25,7 @@ export function StaffAuthButton({
       const supabase = createClient();
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "discord",
-        options: { redirectTo: `${window.location.origin}/dashboard` },
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
       });
       if (oauthError) {
         setError(oauthError.message);
