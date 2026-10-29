@@ -17,7 +17,7 @@ export function LoaClient() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
-  const valid = start && end && new Date(end) >= new Date(start);
+  const valid = start && end && reason.trim().length >= 3 && new Date(end) >= new Date(start);
 
   async function submit() {
     setBusy(true);
@@ -31,10 +31,14 @@ export function LoaClient() {
       }
       const { error: insertError } = await supabase.from("loa_requests").insert({
         requested_by: data.user.id,
+        discord_name:
+          data.user.user_metadata?.global_name ??
+          data.user.user_metadata?.user_name ??
+          "Staff Member",
         type,
         start_date: start,
         end_date: end,
-        reason: reason.trim() || null,
+        reason: reason.trim(),
       });
       if (insertError) {
         setError(insertError.message);
