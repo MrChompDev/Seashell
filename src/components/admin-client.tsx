@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CalendarClock,
   Check,
+  Clock,
   FileText,
   Loader2,
   PenLine,
@@ -15,7 +16,13 @@ import {
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import type { AgreementRow, DocumentRow, LoaRequest, Profile } from "@/lib/types";
+import type {
+  AgreementRow,
+  DocumentRow,
+  LoaRequest,
+  PendingInvite,
+  Profile,
+} from "@/lib/types";
 import { cx, formatDate } from "@/lib/utils";
 
 const TABS = [
@@ -32,11 +39,13 @@ export function AdminClient({
   agreements,
   pendingLoa,
   roster,
+  invites,
 }: {
   documents: DocumentRow[];
   agreements: AgreementRow[];
   pendingLoa: LoaRequest[];
   roster: Profile[];
+  invites: PendingInvite[];
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<TabId>("documents");
@@ -87,7 +96,7 @@ export function AdminClient({
       {tab === "documents" && <DocsTab documents={documents} run={run} />}
       {tab === "agreements" && <AgreementsTab agreements={agreements} run={run} />}
       {tab === "loa" && <LoaTab pendingLoa={pendingLoa} run={run} />}
-      {tab === "staff" && <StaffTab roster={roster} run={run} />}
+      {tab === "staff" && <StaffTab roster={roster} invites={invites} run={run} />}
     </div>
   );
 }
@@ -399,76 +408,268 @@ function LoaReviewRow({
 
 /* ------------------------------------------------------------------ staff roster */
 
+const ROLES: Profile["role"][] = ["Staff", "Manager", "Admin"];
+
 function StaffTab({
   roster,
+  invites,
   run,
 }: {
   roster: Profile[];
+  invites: PendingInvite[];
   run: (fn: () => Promise<void>) => void;
 }) {
-  async function setRole(id: string, role: Profile["role"] | null, isStaff: boolean | null) {
-    await createClient().from("staff_profiles").update({ role, is_staff: isStaff }).eq("id", id);
+  const [meId, setMeId] = useState<string | null>(null);
+  const [form, setForm] = useState({ discordId: "", name: "", role: "Staff" });
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // identify the signed-in admin so we can block self-edits on the roster
+    createClient()
+      .from("staff_profiles")
+      .select("id")
+      .then(({ data }) => setMeId(data?.[0]?.id ?? null));
+  }, []);
+
+  const activeAdmins = roster.filter((p) => p.is_staff && p.role === "Admin");
+  const lastAdminId = activeAdmins.length === 1 ? activeAdmins[0].id : null;
+
+  async function sendInvite() {
+    setError(null);
+    const id = form.discordId.trim();
+    if (!/^\d{15,21}$/.test(id)) {
+      setError(
+        "Discord ID must be the numeric user ID — right-click the member in Discord and choose 'Copy User ID'."
+      );
+      return;
+    }
+    const { error: err } = await createClient().from("pending_invites").insert({
+      discord_user_id: id,
+      invitee_name: form.name.trim() || null,
+      role: form.role as Profile["role"],
+    });
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setForm({ discordId: "", name: "", role: "Staff" });
+  }
+
+  async function setRole(id: string, role: Profile["role"]) {
+    const { error: err } = await createClient()
+      .from("staff_profiles")
+      .update({ role, is_staff: true })
+      .eq("id", id);
+    if (err) setError(err.message);
+  }
+
+  async function setStaffStatus(id: string, isStaff: boolean) {
+    const { error: err } = await createClient()
+      .from("staff_profiles")
+      .update({ is_staff: isStaff })
+      .eq("id", id);
+    if (err) setError(err.message);
   }
 
   async function removeMembership(id: string) {
-    await createClient().from("staff_profiles").delete().eq("id", id);
+    const { error: err } = await createClient()
+      .from("staff_profiles")
+      .delete()
+      .eq("id", id);
+    if (err) setError(err.message);
+  }
+
+  async function cancelInvite(id: string) {
+    const { error: err } = await createClient()
+      .from("pending_invites")
+      .delete()
+      .eq("id", id);
+    if (err) setError(err.message);
   }
 
   return (
-    <ul className="flex flex-col gap-3">
-      {roster.map((p) => (
-        <li key={p.id} className="card-dark flex flex-wrap items-center gap-4 px-5 py-4">
-          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-copper-400/30 bg-copper-400/10">
-            {p.discord_avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={p.discord_avatar_url ?? ""} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <span className="text-sm font-bold text-copper-300">{(p.discord_name ?? "S").charAt(0).toUpperCase()}</span>
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-cream">{p.discord_name ?? "Staff Member"}</p>
-            <p className="text-xs text-stone-500">
-              {p.is_staff ? p.role : "Inactive"} · joined {formatDate(p.created_at)}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            {p.is_staff && p.role !== "Admin" ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => run(() => setRole(p.id, "Manager", true))}
-                  className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-stone-300 hover:border-copper-400/50 hover:text-copper-200"
+    <div className="grid gap-6 lg:grid-cols-5">
+      {/* add / invite staff */}
+      <section className="card-dark p-7 lg:col-span-2">
+        <h3 className="flex items-center gap-2 text-lg font-semibold text-cream">
+          <Plus className="h-5 w-5 text-copper-300" />
+          Add Staff
+        </h3>
+        <p className="mt-2 text-xs leading-relaxed text-stone-500">
+          Invites a Discord member. Their role activates the moment they sign in
+          — no manual upgrading needed.
+        </p>
+        <div className="mt-5 space-y-4">
+          <Input
+            label="Discord User ID"
+            value={form.discordId}
+            onChange={(v) => setForm({ ...form, discordId: v })}
+            placeholder="1173859826432..."
+          />
+          <Input
+            label="Name (optional)"
+            value={form.name}
+            onChange={(v) => setForm({ ...form, name: v })}
+            placeholder="Shown before their first sign-in"
+          />
+          <Select
+            label="Role"
+            value={form.role}
+            onChange={(v) => setForm({ ...form, role: v })}
+            options={ROLES}
+          />
+          {error && <p className="text-xs text-red-300">{error}</p>}
+          <button
+            type="button"
+            onClick={() => run(sendInvite)}
+            className="btn-gold w-full justify-center text-sm"
+          >
+            Send Invite
+          </button>
+        </div>
+      </section>
+
+      {/* roster + pending invites */}
+      <section className="space-y-6 lg:col-span-3">
+        {invites.length > 0 && (
+          <div>
+            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-stone-500">
+              <Clock className="h-4 w-4 text-amber-300" />
+              Pending Invites ({invites.length})
+            </h3>
+            <ul className="flex flex-col gap-2">
+              {invites.map((i) => (
+                <li
+                  key={i.id}
+                  className="card-dark flex flex-wrap items-center gap-3 px-5 py-3"
                 >
-                  Make Manager
-                </button>
-                <button
-                  type="button"
-                  onClick={() => run(() => setRole(p.id, "Admin", true))}
-                  className="rounded-lg border border-copper-400/30 bg-copper-400/10 px-3 py-1.5 text-xs font-semibold text-copper-200 hover:bg-copper-400/20"
-                >
-                  <ShieldCheck className="mr-1 inline h-3 w-3" />
-                  Make Admin
-                </button>
-              </>
-            ) : null}
-            {p.id !== roster.find((r) => r.role === "Admin" && r.is_staff)?.id && (
-              <button
-                type="button"
-                onClick={() => run(() => removeMembership(p.id))}
-                className="text-stone-600 transition-colors hover:text-red-400"
-                aria-label="Remove staff"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            )}
+                  <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-widest text-amber-300">
+                    {i.role}
+                  </span>
+                  <span className="text-sm font-medium text-cream">
+                    {i.invitee_name ?? "Discord member"}
+                  </span>
+                  <span className="truncate font-mono text-xs text-stone-500">
+                    {i.discord_user_id}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => run(() => cancelInvite(i.id))}
+                    className="ml-auto text-stone-600 transition-colors hover:text-red-400"
+                    aria-label="Cancel invite"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
           </div>
-        </li>
-      ))}
-      {roster.length === 0 && (
-        <li className="card-dark p-8 text-center text-sm text-stone-500">No staff members yet.</li>
-      )}
-    </ul>
+        )}
+
+        <div>
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-stone-500">
+            <Users className="h-4 w-4 text-copper-400/70" />
+            Staff Roster ({roster.length})
+          </h3>
+          <ul className="flex flex-col gap-3">
+            {roster.map((p) => {
+              const isSelf = p.id === meId;
+              const isLastAdmin = p.id === lastAdminId;
+              const locked = isSelf || isLastAdmin;
+              return (
+                <li
+                  key={p.id}
+                  className="card-dark flex flex-wrap items-center gap-4 px-5 py-4"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-copper-400/30 bg-copper-400/10">
+                    {p.discord_avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={p.discord_avatar_url}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-sm font-bold text-copper-300">
+                        {(p.discord_name ?? "S").charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-cream">
+                      {p.discord_name ?? "Staff Member"}
+                      {p.role === "Admin" && p.is_staff && (
+                        <ShieldCheck className="ml-1.5 inline h-3.5 w-3.5 text-copper-300" />
+                      )}
+                    </p>
+                    <p className="text-xs text-stone-500">
+                      {p.is_staff ? p.role : "Inactive"} · joined{" "}
+                      {formatDate(p.created_at)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {p.is_staff ? (
+                      <select
+                        value={p.role}
+                        disabled={locked}
+                        onChange={(e) =>
+                          run(() => setRole(p.id, e.target.value as Profile["role"]))
+                        }
+                        className="input-dark w-28 px-2 py-1.5 text-xs disabled:opacity-60"
+                      >
+                        {ROLES.map((r) => (
+                          <option key={r}>{r}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => run(() => setStaffStatus(p.id, true))}
+                        className="btn-outline text-xs"
+                      >
+                        Activate
+                      </button>
+                    )}
+                    {p.is_staff && !locked && (
+                      <button
+                        type="button"
+                        onClick={() => run(() => setStaffStatus(p.id, false))}
+                        className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-stone-400 hover:!border-amber-400/50 hover:!text-amber-300"
+                      >
+                        Deactivate
+                      </button>
+                    )}
+                    {!locked ? (
+                      <button
+                        type="button"
+                        onClick={() => run(() => removeMembership(p.id))}
+                        className="text-stone-600 transition-colors hover:text-red-400"
+                        aria-label="Remove staff"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    ) : (
+                      <span
+                        title={isSelf ? "You can't manage your own account" : "The last Admin can't be removed"}
+                        className="text-stone-700"
+                        aria-label="Locked"
+                      >
+                        <X className="h-4 w-4 opacity-40" />
+                      </span>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+            {roster.length === 0 && (
+              <li className="card-dark p-8 text-center text-sm text-stone-500">
+                No staff members yet.
+              </li>
+            )}
+          </ul>
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -486,15 +687,22 @@ function Input({
   label,
   value,
   onChange,
+  placeholder,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  placeholder?: string;
 }) {
   return (
     <div>
       <Label>{label}</Label>
-      <input value={value} onChange={(e) => onChange(e.target.value)} className="input-dark" />
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="input-dark"
+      />
     </div>
   );
 }

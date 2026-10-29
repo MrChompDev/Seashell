@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { PortalShell } from "@/components/portal-shell";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseEnv } from "@/lib/supabase/config";
@@ -14,6 +15,9 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Auth gate + third-party auth client: render at request time.
+  await connection();
+
   const { configured } = getSupabaseEnv();
 
   const supabase = await createClient();
@@ -34,6 +38,10 @@ export default async function DashboardLayout({
 
   if (!configured || profileError || !profileData) {
     redirect("/staff?reason=signin");
+  }
+  if (!profileData.is_staff) {
+    // Signed in, but not (yet) on the staff roster.
+    redirect("/staff?reason=notstaff");
   }
 
   return (

@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import type { AgreementRow, DocumentRow, LoaRequest, Profile } from "@/lib/types";
+import type { AgreementRow, DocumentRow, LoaRequest, PendingInvite, Profile } from "@/lib/types";
 import { AdminClient } from "@/components/admin-client";
 
 // Auth gate + user data: render this route at request time.
@@ -15,6 +16,9 @@ export default async function AdminPage({
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
+  // Auth gate + user data: render at request time.
+  await connection();
+
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) {
@@ -23,26 +27,28 @@ export default async function AdminPage({
 
   const { data: me } = await supabase
     .from("staff_profiles")
-    .select("role")
+    .select("role, is_staff")
     .eq("id", userData.user.id)
     .maybeSingle<Profile>();
-  if (me?.role !== "Admin") {
+  if (me?.role !== "Admin" || !me.is_staff) {
     redirect("/dashboard");
   }
 
-  const [docsRes, agreementsRes, loaRes, rosterRes] = await Promise.all([
+  const [docsRes, agreementsRes, loaRes, rosterRes, invitesRes] = await Promise.all([
     supabase.from("documents").select("*").order("category").order("title"),
     supabase.from("agreements").select("*").order("title"),
     supabase.from("loa_requests").select("*").eq("status", "Pending").order("created_at"),
     supabase.from("staff_profiles").select("*").order("created_at"),
+    supabase.from("pending_invites").select("*").order("created_at"),
   ]);
 
   const documents = (docsRes.data ?? []) as DocumentRow[];
   const agreements = (agreementsRes.data ?? []) as AgreementRow[];
   const pendingLoa = (loaRes.data ?? []) as LoaRequest[];
   const roster = (rosterRes.data ?? []) as Profile[];
+  const invites = (invitesRes.data ?? []) as PendingInvite[];
 
-  if (docsRes.error || agreementsRes.error || loaRes.error || rosterRes.error) {
+  if (docsRes.error || agreementsRes.error || loaRes.error || rosterRes.error || invitesRes.error) {
     throw new Error("Admin data load failed");
   }
 
@@ -72,6 +78,7 @@ export default async function AdminPage({
         agreements={agreements}
         pendingLoa={pendingLoa}
         roster={roster}
+        invites={invites}
       />
     </div>
   );

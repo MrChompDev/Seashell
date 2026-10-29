@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { ArrowLeft, ExternalLink, FileText, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { DocumentRow } from "@/lib/types";
@@ -19,6 +20,9 @@ export default async function DocumentsPage({
 }: {
   searchParams: Promise<{ category?: string; q?: string }>;
 }) {
+  // Auth gate + user data: render at request time.
+  await connection();
+
   const { category, q } = await searchParams;
   const supabase = await createClient();
 

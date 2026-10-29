@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { ArrowLeft, PenLine, ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { AgreementRow, AgreementSignature } from "@/lib/types";
@@ -11,6 +12,9 @@ export const instant = false;
 type SignatureRow = Pick<AgreementSignature, "agreement_id" | "agreement_version">;
 
 export default async function AgreementsPage() {
+  // Auth gate + user data: render at request time.
+  await connection();
+
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) {

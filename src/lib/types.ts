@@ -56,6 +56,15 @@ export type LoaRequest = {
   created_at: string;
 };
 
+export type PendingInvite = {
+  id: string;
+  discord_user_id: string;
+  invitee_name: string | null;
+  role: "Staff" | "Manager" | "Admin";
+  invited_by: string | null;
+  created_at: string;
+};
+
 export type QuickLink = {
   id: string;
   label: string;

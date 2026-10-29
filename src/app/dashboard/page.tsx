@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import {
   ArrowRight,
   BookOpen,
@@ -31,6 +32,9 @@ const LINK_ICONS: Record<string, IconComponent> = {
 };
 
 export default async function DashboardOverviewPage() {
+  // Auth gate + user data: render at request time.
+  await connection();
+
   const supabase = await createClient();
 
   const { data: userData } = await supabase.auth.getUser();

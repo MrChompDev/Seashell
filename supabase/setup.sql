@@ -388,3 +388,127 @@ values
    Any disciplinary action may be appealed through a senior staff member or the
    owner within 7 days.', 2)
 on conflict do nothing;
+
+-- ==========================================================================
+-- v2 additions: Discord invites + roster guardrails (idempotent, re-run safe)
+-- ==========================================================================
+
+-- --------------------------------------------------------------------------
+-- Invite-first roster: Admins add a Discord member by numeric user ID and a
+-- chosen role. When that person signs in with Discord for the first time,
+-- handle_new_user() (below) upgrades their auto-created profile to the
+-- invited role and clears the invite.
+-- --------------------------------------------------------------------------
+create table if not exists public.pending_invites (
+  id               uuid primary key default gen_random_uuid(),
+  discord_user_id  text not null unique,
+  invitee_name     text,
+  role             text not null default 'Staff'
+                   check (role in ('Staff', 'Manager', 'Admin')),
+  invited_by       uuid,
+  created_at       timestamptz not null default now()
+);
+alter table public.pending_invites enable row level security;
+
+create policy "invites: admin read" on public.pending_invites
+  for select to authenticated
+  using ((select public.caller_is_admin()));
+create policy "invites: admin insert" on public.pending_invites
+  for insert to authenticated
+  with check ((select public.caller_is_admin()));
+create policy "invites: admin delete" on public.pending_invites
+  for delete to authenticated
+  using ((select public.caller_is_admin()));
+
+-- Re-create the user-creation trigger so it honours pending invites.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  discord_id     text;
+  invited_role   text;
+  is_first_admin boolean;
+begin
+  discord_id := coalesce(new.raw_user_meta_data ->> 'provider_id',
+                         new.raw_user_meta_data ->> 'sub');
+
+  is_first_admin := not exists (
+    select 1 from public.staff_profiles sp where sp.role = 'Admin'
+  );
+
+  insert into public.staff_profiles (id, discord_name, discord_avatar_url, role, is_staff)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data ->> 'global_name',
+             new.raw_user_meta_data ->> 'user_name',
+             new.raw_user_meta_data ->> 'name', 'Staff Member'),
+    new.raw_user_meta_data ->> 'avatar_url',
+    case when is_first_admin then 'Admin' else 'Staff' end,
+    case when is_first_admin then true else false end
+  );
+
+  -- Upgrade invited users to their invited role.
+  select role into invited_role
+    from public.pending_invites
+    where discord_user_id = discord_id;
+
+  if invited_role is not null then
+    update public.staff_profiles
+       set role = invited_role,
+           is_staff = true
+     where id = new.id
+       and not is_first_admin;
+
+    delete from public.pending_invites
+     where discord_user_id = discord_id;
+  end if;
+
+  return new;
+end;
+$$;
+
+-- --------------------------------------------------------------------------
+-- Guard: there must always be at least one active Admin on the roster.
+-- Blocks both removing the last Admin and demoting/deactivating them.
+-- --------------------------------------------------------------------------
+create or replace function public.guard_last_admin()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  admins_left int;
+begin
+  if tg_op = 'DELETE' then
+    if old.is_staff and old.role = 'Admin' then
+      select count(*) into admins_left
+        from public.staff_profiles sp
+        where sp.id <> old.id and sp.is_staff and sp.role = 'Admin';
+      if admins_left < 1 then
+        raise exception 'Cannot remove the last active Admin from the roster.';
+      end if;
+    end if;
+    return old;
+  else
+    if old.is_staff and old.role = 'Admin'
+       and (new.is_staff is not true or new.role is distinct from 'Admin') then
+      select count(*) into admins_left
+        from public.staff_profiles sp
+        where sp.id <> old.id and sp.is_staff and sp.role = 'Admin';
+      if admins_left < 1 then
+        raise exception 'Cannot demote the last active Admin.';
+      end if;
+    end if;
+    return new;
+  end if;
+end;
+$$;
+
+drop trigger if exists last_admin_guard on public.staff_profiles;
+create trigger last_admin_guard
+  before update or delete on public.staff_profiles
+  for each row execute procedure public.guard_last_admin();

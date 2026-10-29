@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { ShieldCheck, LogOut } from "lucide-react";
 import { Shell, BrandLockup } from "@/components/brand";
 import { PortalFooter } from "@/components/portal-footer";
@@ -16,6 +17,9 @@ export default async function StaffPage({
 }: {
   searchParams: Promise<{ reason?: string }>;
 }) {
+  // Auth gate + user data: render at request time.
+  await connection();
+
   const { reason } = await searchParams;
   const { configured } = getSupabaseEnv();
 
@@ -87,6 +91,12 @@ export default async function StaffPage({
                 <p className="mt-6 max-w-sm rounded-xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-xs leading-relaxed text-red-200">
                   Discord sign-in didn't complete. Make sure the Discord
                   provider is enabled in Supabase, then try again.
+                </p>
+              )}
+              {reason === "notstaff" && (
+                <p className="mt-6 max-w-sm rounded-xl border border-copper-400/25 bg-copper-500/10 px-4 py-3 text-xs leading-relaxed text-copper-100">
+                  You're signed in, but your Discord account isn't on the staff
+                  roster yet. Ask an Admin to add you, then try again.
                 </p>
               )}
               {reason === "config" && (

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { ArrowLeft, CalendarClock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { LoaRequest } from "@/lib/types";
@@ -9,6 +10,9 @@ import { LoaClient, LoaWithdraw } from "@/components/loa-client";
 export const instant = false;
 
 export default async function LoaPage() {
+  // Auth gate + user data: render at request time.
+  await connection();
+
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) {
