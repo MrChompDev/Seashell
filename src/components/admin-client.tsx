@@ -207,21 +207,21 @@ function AgreementsTab({
   agreements: AgreementRow[];
   run: (fn: () => Promise<void>) => void;
 }) {
-  const [form, setForm] = useState({ title: "", body: "", version: "1" });
+  const [form, setForm] = useState({ title: "", content: "", version: "1" });
   const [error, setError] = useState<string | null>(null);
 
   async function addAgreement() {
     setError(null);
     const { error: err } = await createClient().from("agreements").insert({
       title: form.title,
-      body: form.body,
+      content: form.content,
       version: Number(form.version) || 1,
     });
     if (err) {
       setError(err.message);
       return;
     }
-    setForm({ title: "", body: "", version: "1" });
+    setForm({ title: "", content: "", version: "1" });
   }
 
   async function bumpVersion(id: string, version: number) {
@@ -254,8 +254,8 @@ function AgreementsTab({
             <Label>Body</Label>
             <textarea
               rows={5}
-              value={form.body}
-              onChange={(e) => setForm({ ...form, body: e.target.value })}
+              value={form.content}
+              onChange={(e) => setForm({ ...form, content: e.target.value })}
               className="input-dark resize-none"
             />
           </div>
@@ -296,8 +296,8 @@ function AgreementsTab({
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
-              {a.body && (
-                <p className="mt-2 line-clamp-2 text-xs text-stone-500">{a.body}</p>
+              {a.content && (
+                <p className="mt-2 line-clamp-2 text-xs text-stone-500">{a.content}</p>
               )}
             </li>
           ))}
@@ -419,15 +419,15 @@ function StaffTab({
       {roster.map((p) => (
         <li key={p.id} className="card-dark flex flex-wrap items-center gap-4 px-5 py-4">
           <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-copper-400/30 bg-copper-400/10">
-            {p.avatar_url ? (
+            {p.discord_avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={p.avatar_url} alt="" className="h-full w-full object-cover" />
+              <img src={p.discord_avatar_url ?? ""} alt="" className="h-full w-full object-cover" />
             ) : (
-              <span className="text-sm font-bold text-copper-300">{p.initial}</span>
+              <span className="text-sm font-bold text-copper-300">{(p.discord_name ?? "S").charAt(0).toUpperCase()}</span>
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-cream">{p.full_name}</p>
+            <p className="truncate text-sm font-medium text-cream">{p.discord_name ?? "Staff Member"}</p>
             <p className="text-xs text-stone-500">
               {p.is_staff ? p.role : "Inactive"} · joined {formatDate(p.created_at)}
             </p>

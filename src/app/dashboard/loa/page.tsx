@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, CalendarClock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { LoaRequest } from "@/lib/types";
-import { LoaClient } from "@/components/loa-client";
+import { LoaClient, LoaWithdraw } from "@/components/loa-client";
 
 export default async function LoaPage() {
   const supabase = await createClient();

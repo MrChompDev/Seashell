@@ -9,7 +9,7 @@ import {
   Eye,
   Image as ImageIcon,
   MessageCircle,
-  PaintPalette,
+  Palette,
   Percent,
   ShoppingCart,
   Clock,
@@ -48,7 +48,7 @@ const STEPS = [
 
 const PREMADES = [
   {
-    icon: (p: { className?: string }) => <PaintPalette {...p} />,
+    icon: (p: { className?: string }) => <Palette {...p} />,
     title: "Graphic Designing",
     price: "From $5.00",
   },

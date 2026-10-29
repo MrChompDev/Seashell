@@ -38,9 +38,11 @@ export function PortalShell({
   const [busy, setBusy] = useState(false);
 
   const isAdmin = profile.role === "Admin";
-  const nav = isAdmin
-    ? [...NAV, { href: "/dashboard/admin", label: "Admin", icon: ShieldCheck, admin: true }]
+  const nav: Array<{ href: string; label: string; icon: typeof LayoutDashboard }> = isAdmin
+    ? [...NAV, { href: "/dashboard/admin", label: "Admin", icon: ShieldCheck }]
     : [...NAV];
+  const displayName = profile.discord_name ?? "Staff Member";
+  const initial = displayName.charAt(0).toUpperCase();
 
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -91,18 +93,18 @@ export function PortalShell({
           <div className="flex items-center gap-3">
             <div className="hidden items-center gap-3 sm:flex">
               <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-copper-400/30 bg-copper-400/10">
-                {profile.avatar_url ? (
+                {profile.discord_avatar_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                  <img src={profile.discord_avatar_url ?? ""} alt="" className="h-full w-full object-cover" />
                 ) : (
                   <span className="text-sm font-bold text-copper-300">
-                    {profile.initial}
+                    {initial}
                   </span>
                 )}
               </div>
               <div className="leading-tight">
                 <div className="max-w-[10rem] truncate text-sm font-medium text-cream">
-                  {profile.full_name}
+                  {displayName}
                 </div>
                 <div className="text-[0.65rem] font-semibold uppercase tracking-widest text-copper-300">
                   {profile.role}
@@ -152,15 +154,15 @@ export function PortalShell({
             </div>
             <div className="mt-5 flex items-center gap-3 rounded-xl border border-copper-400/20 bg-ink/60 p-3">
               <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-copper-400/30 bg-copper-400/10">
-                {profile.avatar_url ? (
+                {profile.discord_avatar_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                  <img src={profile.discord_avatar_url ?? ""} alt="" className="h-full w-full object-cover" />
                 ) : (
-                  <span className="text-sm font-bold text-copper-300">{profile.initial}</span>
+                  <span className="text-sm font-bold text-copper-300">{initial}</span>
                 )}
               </div>
               <div className="leading-tight">
-                <div className="truncate text-sm font-medium text-cream">{profile.full_name}</div>
+                <div className="truncate text-sm font-medium text-cream">{displayName}</div>
                 <div className="text-[0.65rem] font-semibold uppercase tracking-widest text-copper-300">
                   {profile.role}
                 </div>

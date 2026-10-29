@@ -5,7 +5,7 @@ import {
   Crown,
   Eye,
   Image as ImageIcon,
-  PaintPalette,
+  Palette,
   Percent,
   Tag,
   Plus,
@@ -21,7 +21,7 @@ type IconComponent = (props: { className?: string }) => React.ReactNode;
 
 const SERVICES: Array<{ icon: IconComponent; title: string; text: string }> = [
   {
-    icon: (p) => <PaintPalette {...p} />,
+    icon: (p) => <Palette {...p} />,
     title: "Graphic Designing",
     text: "Logos, banners, thumbnails and complete brand kits — the premades we're known for.",
   },

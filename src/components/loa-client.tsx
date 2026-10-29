@@ -105,7 +105,7 @@ export function LoaClient() {
   );
 }
 
-function LoaWithdraw({ id }: { id: string }) {
+export function LoaWithdraw({ id }: { id: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
 

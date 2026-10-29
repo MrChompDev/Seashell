@@ -10,7 +10,7 @@ type AgreementsAgreement = {
   id: string;
   title: string;
   version: number;
-  body: string;
+  content: string;
 };
 
 export function AgreementsClient({
@@ -98,7 +98,7 @@ export function AgreementsClient({
       {open && (
         <div className="border-t border-white/5 px-6 pb-6 pt-5">
           <div className="nice-scroll max-h-64 rounded-xl border border-white/5 bg-ink/70 p-4">
-            {agreement.body.split("\n").map((p, i) => (
+            {agreement.content.split("\n").map((p, i) => (
               <p key={i} className={cx("text-sm leading-relaxed text-stone-400", i > 0 && "mt-3")}>
                 {p}
               </p>
