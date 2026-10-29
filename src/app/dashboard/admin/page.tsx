@@ -48,11 +48,11 @@ export default async function AdminPage({
   const roster = (rosterRes.data ?? []) as Profile[];
   const invites = (invitesRes.data ?? []) as PendingInvite[];
 
-  const failed = [docsRes, agreementsRes, loaRes, rosterRes, invitesRes].find((r) => r.error);
-  if (failed) {
-    throw new Error(
-      `Admin data load failed: ${failed.error.code} — ${failed.error.message}`
-    );
+  for (const res of [docsRes, agreementsRes, loaRes, rosterRes, invitesRes]) {
+    const err = res.error;
+    if (err) {
+      throw new Error(`Admin data load failed: ${err.code} — ${err.message}`);
+    }
   }
 
   return (
