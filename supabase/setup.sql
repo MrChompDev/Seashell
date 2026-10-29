@@ -445,12 +445,15 @@ create table if not exists public.pending_invites (
 );
 alter table public.pending_invites enable row level security;
 
+drop policy if exists "invites: admin read" on public.pending_invites;
 create policy "invites: admin read" on public.pending_invites
   for select to authenticated
   using ((select public.caller_is_admin()));
+drop policy if exists "invites: admin insert" on public.pending_invites;
 create policy "invites: admin insert" on public.pending_invites
   for insert to authenticated
   with check ((select public.caller_is_admin()));
+drop policy if exists "invites: admin delete" on public.pending_invites;
 create policy "invites: admin delete" on public.pending_invites
   for delete to authenticated
   using ((select public.caller_is_admin()));
