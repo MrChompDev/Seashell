@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Shell, DiscordMark } from "./brand";
+import { Year } from "./year";
 
 const STAFF_SUPPORT = [
   { label: "Staff Documents", href: "/dashboard/documents" },
@@ -75,7 +76,7 @@ export function PortalFooter() {
       <div className="flex flex-col items-center gap-4 border-t border-white/5 py-6">
         <Shell className="h-7 w-7 opacity-80" />
         <p className="text-xs text-stone-500">
-          © {new Date().getFullYear()} Seashell Customs — All Rights Reserved
+          © <Year /> Seashell Customs — All Rights Reserved
         </p>
       </div>
     </footer>

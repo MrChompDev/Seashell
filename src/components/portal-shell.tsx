@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { Shell, DiscordMark } from "./brand";
+import { Year } from "./year";
 import type { Profile } from "@/lib/types";
 
 const NAV = [
@@ -212,7 +213,7 @@ export function PortalShell({
 
       <footer className="border-t border-white/5 py-6">
         <p className="text-center text-xs text-stone-600">
-          © {new Date().getFullYear()} Seashell Customs — Staff Portal
+          © <Year /> Seashell Customs — Staff Portal
         </p>
       </footer>
     </div>

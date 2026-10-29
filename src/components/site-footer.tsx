@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Mail } from "lucide-react";
 import { DiscordMark, Shell } from "./brand";
+import { Year } from "./year";
 
 const FOOTER_LINKS = [
   { label: "Home", href: "/" },
@@ -80,7 +81,7 @@ export function SiteFooter() {
       </div>
 
       <div className="border-t border-white/5 py-5 text-center text-xs text-stone-500">
-        © {new Date().getFullYear()} Seashell Customs — All Rights Reserved
+        © <Year /> Seashell Customs — All Rights Reserved
       </div>
     </footer>
   );

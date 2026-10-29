@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Seashell Customs
 
-## Getting Started
+Client website and staff portal for **Seashell Customs** — "Home of the Premades." Built with Next.js 16 (App Router, Cache Components, Turbopack), Tailwind CSS v4, and Supabase (PostgreSQL + Discord OAuth).
 
-First, run the development server:
+## Stack
+
+- **Next.js 16.4.3** — App Router, `src/` directory, TypeScript strict
+- **React 19.3** · **Tailwind CSS v4** (design tokens in `src/app/globals.css`)
+- **@supabase/ssr / supabase-js** — auth (Discord provider) + Postgres data
+- **lucide-react** icons · Poppins + Great Vibes via `next/font`
+
+## Quick Start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# 1. Install (exFAT-safe: no symlinks)
+npm_config_tmp="$PWD/.npmtmp" npm install --no-bin-links
+
+# 2. Environment
+cp .env.example .env.local   # fill in Supabase URL + publishable key
+
+# 3. Database — one time
+#    Paste supabase/setup.sql into the Supabase SQL editor and run it.
+#    Then enable Authentication > Providers > Discord
+#    (callback: https://<project-ref>.supabase.co/auth/v1/callback)
+
+# 4. Run
+npm run dev        # development
+npm run build && npm run start   # production (binless: see notes)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> **exFAT / binless note** — this drive doesn't support symlinks, so npm runs with
+> `bin-links=false`. Run binaries directly, e.g.
+> `node node_modules/next/dist/bin/next build`, or add `.cmd` style wrappers.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+  app/                  → routes
+    page.tsx            → home (services, Seashell+, gallery)
+    order/              → order flow
+    legal/              → ToS / privacy
+    staff/              → sign-in + auth status copy
+    dashboard/          → auth-gated staff portal (layout performs the session check)
+      documents/  agreements/  loa/  tax-calculator/  admin/
+  components/           → brand marks, site/portal shells, per-page clients
+  lib/
+    supabase/           → config · client (browser) · server (cookies, async)
+    types.ts            → row types matching the Supabase schema
+    utils.ts            → cx, formatDate
+  proxy.ts              → Next 16 middleware (session cookie refresh)
+supabase/
+  setup.sql             → schema, RLS policies, triggers, seed data
+```
 
-## Learn More
+## Data & auth notes
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `supabase/setup.sql` defines all tables (documents, agreements, agreement_signatures, loa_requests, staff_profiles, quick_links), RLS policies, and a `handle_new_user()` trigger.
+- Real Discord login; the **first ever staff login is auto-promoted to Admin** by the signup trigger. Promote further staff via `/dashboard/admin`.
+- Dynamic (`ƒ`) routes (`/dashboard/*`, `/staff`) render at request time (`export const instant = false`); marketing routes (`/`, `/order`, `/legal`) are statically prerendered.

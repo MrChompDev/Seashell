@@ -13,6 +13,9 @@ import { Shell, SMark } from "@/components/brand";
 import { createClient } from "@/lib/supabase/server";
 import type { AgreementSignature, DocumentRow, LoaRequest, QuickLink } from "@/lib/types";
 
+// Auth gate + user data: render this route at request time.
+export const instant = false;
+
 type IconComponent = React.ComponentType<{ className?: string }>;
 
 const LINK_ICONS: Record<string, IconComponent> = {

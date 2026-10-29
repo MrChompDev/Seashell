@@ -6,6 +6,9 @@ import type { Profile } from "@/lib/types";
 
 export const metadata = { title: "Staff Dashboard" };
 
+// Auth gate + user data: render this route at request time.
+export const instant = false;
+
 export default async function DashboardLayout({
   children,
 }: {

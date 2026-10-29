@@ -6,6 +6,9 @@ import { StaffAuthButton } from "@/components/staff-auth-button";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseEnv } from "@/lib/supabase/config";
 
+// Auth gate + user data: render this route at request time.
+export const instant = false;
+
 export const metadata = { title: "Staff Portal" };
 
 export default async function StaffPage({

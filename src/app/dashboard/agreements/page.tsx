@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import type { AgreementRow, AgreementSignature } from "@/lib/types";
 import { AgreementsClient } from "@/components/agreements-client";
 
+// Auth gate + user data: render this route at request time.
+export const instant = false;
+
 type SignatureRow = Pick<AgreementSignature, "agreement_id" | "agreement_version">;
 
 export default async function AgreementsPage() {

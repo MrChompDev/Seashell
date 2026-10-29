@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import type { AgreementRow, DocumentRow, LoaRequest, Profile } from "@/lib/types";
 import { AdminClient } from "@/components/admin-client";
 
+// Auth gate + user data: render this route at request time.
+export const instant = false;
+
 export const metadata = { title: "Admin Console" };
 
 export default async function AdminPage({

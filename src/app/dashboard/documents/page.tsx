@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import type { DocumentRow } from "@/lib/types";
 import { cx } from "@/lib/utils";
 
+// Auth gate + user data: render this route at request time.
+export const instant = false;
+
 const CATEGORIES = [
   "Handbooks",
   "Policies",
