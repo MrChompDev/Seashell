@@ -12,7 +12,6 @@ import {
 import { Shell, SMark } from "@/components/brand";
 import { createClient } from "@/lib/supabase/server";
 import type { AgreementRow, AgreementSignature, DocumentRow, LoaRequest, QuickLink } from "@/lib/types";
-import { statusChipClass } from "@/lib/utils";
 
 type IconComponent = React.ComponentType<{ className?: string }>;
 
