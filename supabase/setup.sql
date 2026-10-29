@@ -155,6 +155,41 @@ alter table public.agreement_signatures  enable row level security;
 alter table public.loa_requests          enable row level security;
 alter table public.quick_links           enable row level security;
 
+-- ==========================================================================
+-- v3 idempotency patch: policies are drop-if-exists then re-created,
+-- so the file is safe to run repeatedly.
+-- ==========================================================================
+drop policy if exists "staff: view own profile" on public.staff_profiles;
+drop policy if exists "staff: roster visible to staff" on public.staff_profiles;
+drop policy if exists "staff: update own (role locked)" on public.staff_profiles;
+drop policy if exists "staff: admin manages everyone" on public.staff_profiles;
+drop policy if exists "staff: admin can remove" on public.staff_profiles;
+drop policy if exists "docs: staff read" on public.documents;
+drop policy if exists "docs: admin insert" on public.documents;
+drop policy if exists "docs: admin update" on public.documents;
+drop policy if exists "docs: admin delete" on public.documents;
+drop policy if exists "agreements: staff read" on public.agreements;
+drop policy if exists "agreements: admin insert" on public.agreements;
+drop policy if exists "agreements: admin update" on public.agreements;
+drop policy if exists "agreements: admin delete" on public.agreements;
+drop policy if exists "signatures: read own" on public.agreement_signatures;
+drop policy if exists "signatures: admin read all" on public.agreement_signatures;
+drop policy if exists "signatures: staff sign own" on public.agreement_signatures;
+drop policy if exists "signatures: admin reset" on public.agreement_signatures;
+drop policy if exists "loa: read own" on public.loa_requests;
+drop policy if exists "loa: admin read all" on public.loa_requests;
+drop policy if exists "loa: staff submit" on public.loa_requests;
+drop policy if exists "loa: admin review" on public.loa_requests;
+drop policy if exists "loa: staff withdraw own pending" on public.loa_requests;
+drop policy if exists "links: staff read" on public.quick_links;
+drop policy if exists "links: admin insert" on public.quick_links;
+drop policy if exists "links: admin update" on public.quick_links;
+drop policy if exists "links: admin delete" on public.quick_links;
+drop policy if exists "invites: admin read" on public.pending_invites;
+drop policy if exists "invites: admin insert" on public.pending_invites;
+drop policy if exists "invites: admin delete" on public.pending_invites;
+
+
 -- Reusable predicate fragments: caller is staff / caller is admin
 create or replace function public.caller_is_staff() returns boolean
 language sql stable security invoker set search_path = ''
