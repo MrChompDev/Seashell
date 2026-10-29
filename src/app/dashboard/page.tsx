@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Shell, SMark } from "@/components/brand";
 import { createClient } from "@/lib/supabase/server";
-import type { AgreementRow, AgreementSignature, DocumentRow, LoaRequest, QuickLink } from "@/lib/types";
+import type { AgreementSignature, DocumentRow, LoaRequest, QuickLink } from "@/lib/types";
 
 type IconComponent = React.ComponentType<{ className?: string }>;
 
@@ -27,37 +27,31 @@ const LINK_ICONS: Record<string, IconComponent> = {
 export default async function DashboardOverviewPage() {
   const supabase = await createClient();
 
-  const [links, docs, sigs, overdue, loa] = await Promise.all([
-    supabase.from("quick_links").select("*").order("sort").returns<QuickLink[]>(),
-    supabase
-      .from("documents")
-      .select("id, title, slug, description, url, category, size, doc_type, is_important")
-      .limit(4)
-      .returns<DocumentRow[]>(),
+  const { data: userData } = await supabase.auth.getUser();
+
+  const [linksRes, docsRes, sigsRes, loaRes, agreementsRes] = await Promise.all([
+    supabase.from("quick_links").select("*").order("sort"),
+    supabase.from("documents").select("*").limit(4),
     supabase
       .from("agreement_signatures")
       .select("signed_at")
       .order("signed_at", { ascending: false })
-      .limit(1)
-      .returns<AgreementSignature[]>(),
-    supabase.auth.getUser().then(({ data }) =>
-      supabase
-        .from("loa_requests")
-        .select("*")
-        .eq("requested_by", data.user?.id ?? "")
-        .in("status", ["Pending", "Approved"])
-        .returns<LoaRequest[]>()
-    ),
+      .limit(1),
+    supabase
+      .from("loa_requests")
+      .select("*")
+      .eq("requested_by", userData.user?.id ?? "")
+      .in("status", ["Pending", "Approved"]),
+    supabase.from("agreements").select("id", { count: "exact", head: true }).eq("active", true),
   ]);
 
-  const totalAgreements = await supabase
-    .from("agreements")
-    .select("id", { count: "exact", head: true })
-    .eq("active", true)
-    .then(({ count }) => count ?? 0);
-
-  const lastSigned = sigs.data?.[0]?.signed_at ?? null;
-  const pendingLoa = (loa.data ?? []).filter((l) => l.status === "Pending").length;
+  const links = (linksRes.data ?? []) as QuickLink[];
+  const docs = (docsRes.data ?? []) as DocumentRow[];
+  const lastSigned =
+    ((sigsRes.data ?? []) as Array<Pick<AgreementSignature, "signed_at">>)[0]?.signed_at ?? null;
+  const pendingLoa =
+    ((loaRes.data ?? []) as LoaRequest[]).filter((l) => l.status === "Pending").length;
+  const totalAgreements = agreementsRes.count ?? 0;
 
   return (
     <div className="space-y-10">
@@ -127,7 +121,7 @@ export default async function DashboardOverviewPage() {
         <section className="card-dark flex flex-col p-7">
           <h2 className="text-lg font-semibold text-cream">Quick Links</h2>
           <ul className="mt-5 flex-1 space-y-3">
-            {(links.data ?? []).map((l) => (
+            {links.map((l) => (
               <li key={l.id}>
                 <Link
                   href={l.href}
@@ -151,7 +145,7 @@ export default async function DashboardOverviewPage() {
         <section className="card-dark flex flex-col p-7">
           <h2 className="text-lg font-semibold text-cream">Recently Updated</h2>
           <ul className="mt-5 flex-1 space-y-3">
-            {(docs.data ?? []).map((d) => (
+            {docs.map((d) => (
               <li key={d.id}>
                 <Link
                   href={`/dashboard/documents?category=${encodeURIComponent(d.category)}`}
@@ -170,8 +164,10 @@ export default async function DashboardOverviewPage() {
                 </Link>
               </li>
             ))}
-            {docs.error && (
-              <li className="text-xs text-red-300">Couldn't load documents.</li>
+            {(docsRes.error || docs.length === 0) && (
+              <li className="text-xs text-stone-500">
+                {docsRes.error ? "Couldn't load documents." : "No documents yet."}
+              </li>
             )}
           </ul>
           <Link
